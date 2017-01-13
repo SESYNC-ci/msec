@@ -1,75 +1,110 @@
-# Get estimate of mean NPP at a point (long, lat)
-get_prod_mean <- function(long, lat) {
-    # Find cell corresponding to target location and calculate crop extent
-    irow <- rowFromY(depth30, lat)
-    icol <- colFromX(depth30, long)
-    crop_area <- extent(depth30, irow-nbuf, irow+nbuf, icol-nbuf, icol+nbuf)
-    # Crop productivity brick and depth/interpolation masks
-    prod_crop <- crop(npp_brick, crop_area)
-    depth30_crop <- crop(depth30, crop_area)
-    interp_crop <- crop(interp, crop_area)
-    
-    # Compute mean prod. and number of non-NA values by cell
-    prod_mean <- mean(prod_crop, na.rm=TRUE)
-    prod_counts <- calc(prod_crop, function(x) {sum(!is.na(x))})
-    # Filter out shallow cells
-    prod_mean[depth30_crop == 1] <- NA
-    if(is.na(prod_mean[nbuf+1,nbuf+1])) {
-        # Find candidate cells for interpolation
-        # Keep only those within distance interp_d of target point
-        prod_mean[interp_crop == 0] <- NA
-        dists <- distanceFromPoints(prod_mean, c(long, lat))
-        dists[is.na(prod_mean)] <- NA
-        dists[dists > interp_d] <- NA
-        ninterp <- min(sum(!is.na(getValues(dists))), ninterp_max)
-        if (ninterp == 0) {
-            # If no cell available for interpolation, return NA
-            return(NA)
-        }
-        else {
-            # Get indices of ninterp closest cells (interp_cells)
-            # Return their mean, as well as the distances and prod.counts for those ninterp cells 
-            interp_cells <- order(getValues(dists))[1:ninterp]
-            close_dists <- getValues(dists)[interp_cells]
-            close_values <- getValues(prod_mean)[interp_cells]
-            interp_mean <- mean(close_values)
-            close_counts <- getValues(prod_counts)[interp_cells]
-            #return(list(interp_mean = interp_mean, 
-            #            close_dists = close_dists, close_counts = close_counts))
-            return(interp_mean)
-        }
+#### Load/update packages ####
+
+pkgs <- data.frame(
+    name = c("geosphere", "raster", "rgdal", "rgeos", "shiny", "shinythemes"),
+    version = c("1.5.5", "2.5.8", "1.1.10", "0.3.20", "1.0.0", "1.1.1"),
+    stringsAsFactors = FALSE
+)
+
+for (i in 1:nrow(pkgs)) {
+    if (!(pkgs$name[i] %in% installed.packages()) || 
+        packageVersion(pkgs$name[i]) < pkgs$version[i]) {
+        install.packages(pkgs$name[i])
     }
-    else {
-        # If there's good data in target cell, just report mean and count
-        #return(list(mean = prod_mean[nbuf+1,nbuf+1], count = prod_counts[nbuf+1,nbuf+1]))
-        return(prod_mean[nbuf + 1, nbuf + 1])
-    }
+    library(pkgs$name[i], character.only = TRUE)
 }
 
-# Get land and/or reef area within dist around a point (long, lat)
-get_lr_area <- function(long, lat, dist, 
-                          which_area = c("both", "land", "reef")) {
-    which_area <- match.arg(which_area)
-    
-    # Create circular buffer around point
+
+# Convert polygon from (-180, 180) to (0, 360) longitude range
+#  Assumes input is a SpatialPolygons with a single Polygon
+rotate_poly <- function(poly) {
+    poly
+    coords <- poly@polygons[[1]]@Polygons[[1]]@coords
+    coords[coords[, 1] < 0, 1] <- coords[coords[, 1] < 0, 1] + 360
+    SpatialPolygons(
+        list(Polygons(list(Polygon(coords, hole = FALSE)), 1)),
+        proj4string = CRS(proj4string(poly))
+    )
+}
+
+# Calculate reef area within dist of point (long, lat)
+reef_area <- function(long, lat, dist) {
     pt <- SpatialPoints(cbind(0, 0), 
-            proj = CRS(paste0("+proj=aeqd +lon_0=", long, 
-                              " +lat_0=", lat, " +unit=m")))
+                        proj = CRS(paste0("+proj=aeqd +lon_0=", long, 
+                                          " +lat_0=", lat, " +unit=m")))
     buf <- gBuffer(pt, width = dist, quadsegs = 20)
-    buf <- spTransform(buf, CRS("+proj=longlat"))
-    
-    if (which_area == "both") {
-        c(reef_area = extract_area(reefs, buf),
-          land_area = extract_area(land, buf))
-    } else if (which_area == "land") {
-        c(land_area = extract_area(land, buf))
-    } else {  # reef
-        c(reef_area = extract_area(reefs, buf))
-    }
+    buf <- spTransform(buf, projection(reefs))
+        
+    reef_crop <- crop(reefs, buf, snap = "out")
+    cell_area <- 0.25
+    suppressWarnings(
+        extract(reef_crop, buf, fun = sum, na.rm = TRUE) * cell_area
+    )
 }
 
-extract_area <- function(rast, buf) {
-    rast_crop <- crop(rast, buf, snap = "out")
-    rast_area <- area(rast_crop, na.rm = TRUE)
-    suppressWarnings(extract(rast_area, buf, fun = sum, na.rm = TRUE))
+# Calculate land area within dist of point (long, lat)
+land_area <- function(long, lat, dist) {
+    pt <- SpatialPoints(cbind(0, 0), 
+                        proj = CRS(paste0("+proj=aeqd +lon_0=", long, 
+                                          " +lat_0=", lat, " +unit=m")))
+    buf <- gBuffer(pt, width = dist, quadsegs = 20)
+    buf <- spTransform(buf, projection(gshhs))
+    
+    if (abs(long - 180) < 3) {
+        buf <- rotate_poly(buf)
+        land_crop <- crop(gshhs_rotate, buf, snap = "out")
+    } else {
+        land_crop <- crop(gshhs, buf, snap = "out")
+    }
+    cell_areas <- area(land_crop)
+    area_mask <- mask(cell_areas, land_crop, maskvalue = 0)
+    suppressWarnings(
+        extract(area_mask, buf, fun = sum, na.rm = TRUE)
+    )
+}
+
+# Calculate human population within dist of point (long, lat) for given years
+human_pop <- function(long, lat, dist, years) {
+    pt <- SpatialPoints(cbind(0, 0), 
+                        proj = CRS(paste0("+proj=aeqd +lon_0=", long, 
+                                          " +lat_0=", lat, " +unit=m")))
+    buf <- gBuffer(pt, width = dist, quadsegs = 20)
+    buf <- spTransform(buf, projection(pop00))
+    yrs90 <- years[years < 2000]
+    yrs00 <- years[years >= 2000]
+        
+    # For points close to 180 meridian, used rotated (0-360) longitude
+    if (abs(long - 180) < 3) {
+        buf <- rotate_poly(buf)
+        if (length(yrs90) > 0) {
+            pop90_crop <- crop(subset(pop90_rotate, paste0("pop", yrs90)), 
+                               buf, snap = "out")
+        }
+        if (length(yrs00) > 0) {
+            pop00_crop <- crop(subset(pop00_rotate, paste0("pop", yrs00)), 
+                               buf, snap = "out")
+        }
+    } else {
+        if (length(yrs90) > 0) {
+            pop90_crop <- crop(subset(pop90, paste0("pop", yrs90)), 
+                               buf, snap = "out")
+        }
+        if (length(yrs00) > 0) {
+            pop00_crop <- crop(subset(pop00, paste0("pop", yrs00)), 
+                               buf, snap = "out")
+        }
+    }
+    if (length(yrs90) > 0) {
+        ext90 <- suppressWarnings(extract(pop90_crop, buf, fun = sum, na.rm = TRUE))
+    } else {
+        ext90 <- NULL
+    }
+    if (length(yrs00) > 0) {
+        ext00 <- suppressWarnings(extract(pop00_crop, buf, fun = sum, na.rm = TRUE))
+    } else {
+        ext00 <- NULL
+    }
+    res <- cbind(ext90, ext00)
+    colnames(res) <- paste0("pop", years)
+    res
 }
