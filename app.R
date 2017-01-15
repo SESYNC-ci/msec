@@ -95,8 +95,8 @@ outputPoints <- function(input, output, session, pts) {
 
 #### UI specification ####
 
-ui <- navbarPage("Marine Socio-Environmental Covariates", 
-    theme = shinytheme("cerulean"), # cerulean or cosmo
+ui <- htmlTemplate("template.html", 
+    content = navbarPage("Marine Socio-Environmental Covariates", 
     
     tabPanel("About",
         p("The Marine Socio-Environmental Covariates (MSEC) data set",
@@ -111,7 +111,7 @@ ui <- navbarPage("Marine Socio-Environmental Covariates",
           "). Variables were derived based on remote-sensing products",
           "and open-access global data products. Full documentation", 
           "and metadata is included the article listed below."),
-        h3("How to use this site"),
+        h2("How to use this site"),
         p("The MSEC website is intended to increase accessibility of MSEC",
           "data to potential end-users by offering an platform for querying",
           "data layers based on point locations. Data may be extracted for",
@@ -123,12 +123,12 @@ ui <- navbarPage("Marine Socio-Environmental Covariates",
           "downloaded into a .csv file. Note that each variable has a", 
           "limitation to the number of points that can be extracted at a",
           "time as well as the maximum search radius (when applicable)."),
-        h3("Citation"),
+        h2("Citation"),
         p("If you use these data products, please cite the following article:"),
         p("Yeager, L.A., Marchand, P., Gill, D.A., Baum, J.K., and",
           "McPherson, J.M. In review. Queryable global layers of environmental", 
           "and anthropogenic variables for marine ecosystem studies."),
-        h3("Terms of use"),
+        h2("Terms of use"),
         p("MESC is released is an open-access data product distributed",
           "freely. We have made every effort to ensure the accuracy of the", 
           "provided data product, but provide no guarantee of any kind.", 
@@ -243,7 +243,7 @@ ui <- navbarPage("Marine Socio-Environmental Covariates",
             )
         )
     )
-)
+))
 
 
 #### Server function ####
