@@ -80,7 +80,8 @@ pointOutputUI <- function(id) {
 }
 
 outputPoints <- function(input, output, session, pts) {
-    output$dtab <- renderDataTable(pts$df, option = list(pageLength = 10))
+    output$dtab <- renderDataTable(signif(pts$df, digits = 6), 
+                                   option = list(pageLength = 20))
     
     output$download <- downloadHandler(
         filename = "msec_out.csv",
@@ -129,7 +130,7 @@ ui <- htmlTemplate("template.html",
           "McPherson, J.M. In review. Queryable global layers of environmental", 
           "and anthropogenic variables for marine ecosystem studies."),
         h2("Terms of use"),
-        p("MESC is released is an open-access data product distributed",
+        p("MSEC is released is an open-access data product distributed",
           "freely. We have made every effort to ensure the accuracy of the", 
           "provided data product, but provide no guarantee of any kind.", 
           "The user assumes all risk associated with using these data.")
@@ -275,6 +276,8 @@ server <- function(input, output, session) {
     observeEvent(input$npp_compute, {
         if(length(input$npp_stat) == 0) {
             showNotification("Please choose one or more statistics.", type = "error")
+        } else if (nrow(pts$df) == 0) {
+            showNotification("Please first input point coordinates.", type = "error")
         } else if (nrow(pts$df) > max_pts_default) {
             showNotification("Number of points exceeds limit.", type = "error")
         } else {
@@ -296,6 +299,9 @@ server <- function(input, output, session) {
         max_pts <- maxpts_radius(input$area_dist)
         if (nrow(pts$df) > max_pts) {
             showNotification("Number of points exceeds limit.", type = "error")
+            return(NULL)
+        } else if (nrow(pts$df) == 0) {
+            showNotification("Please first input point coordinates.", type = "error")
             return(NULL)
         }
         dist <- input$area_dist * 1000
@@ -325,6 +331,8 @@ server <- function(input, output, session) {
     observeEvent(input$wave_compute, {
         if(length(input$wave_stat) == 0) {
             showNotification("Please choose one or more statistics.", type = "error")
+        } else if (nrow(pts$df) == 0) {
+            showNotification("Please first input point coordinates.", type = "error")
         } else if (nrow(pts$df) > max_pts_default) {
             showNotification("Number of points exceeds limit.", type = "error")
         } else {
@@ -346,6 +354,9 @@ server <- function(input, output, session) {
         max_pts <- maxpts_radius(input$pop_dist)
         if (nrow(pts$df) > max_pts) {
             showNotification("Number of points exceeds limit.", type = "error")
+            return(NULL)
+        } else if (nrow(pts$df) == 0) {
+            showNotification("Please first input point coordinates.", type = "error")
             return(NULL)
         }
         dist <- input$pop_dist * 1000
@@ -369,11 +380,17 @@ server <- function(input, output, session) {
     observeEvent(input$mark_compute, {
         if (nrow(pts$df) > max_pts_default) {
             showNotification("Number of points exceeds limit.", type = "error")
+        } else if (nrow(pts$df) == 0) {
+            showNotification("Please first input point coordinates.", type = "error")
         } else {
             coords <- pts$df[, c("long", "lat")]
             coords$long <- coords$long - (coords$long > 180) * 360
-            dist_market <- apply(coords, 1, 
-                                 function(x) min(distGeo(x, capitals))/1000)
+            withProgress(message = "Processing...", value = 0, {
+                dist_market <- vapply(1:nrow(coords), function(i) {
+                    incProgress(1/nrow(coords), detail = paste0(i, "/", nrow(coords)))
+                    min(distGeo(coords[i, ], capitals)) / 1000
+                }, 0)
+            })
             pts$df$dist_market <- dist_market
         }
     })

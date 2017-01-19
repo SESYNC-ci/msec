@@ -104,7 +104,7 @@ human_pop <- function(long, lat, dist, years) {
     } else {
         ext00 <- NULL
     }
-    res <- cbind(ext90, ext00)
+    res <- round(cbind(ext90, ext00))
     colnames(res) <- paste0("pop", years)
     res
 }
