@@ -1,15 +1,15 @@
 #### Load/update packages ####
 
 pkgs <- data.frame(
-    name = c("geosphere", "raster", "rgdal", "rgeos", "shiny"),
-    version = c("1.5.5", "2.5.8", "1.1.10", "0.3.20", "1.0.0"),
+    name = c("geosphere", "raster", "rgdal", "rgeos"),
+    version = c("1.5.5", "2.5.8", "1.1.10", "0.3.20"),
     stringsAsFactors = FALSE
 )
 
 for (i in 1:nrow(pkgs)) {
     if (!(pkgs$name[i] %in% installed.packages()) || 
         packageVersion(pkgs$name[i]) < pkgs$version[i]) {
-        install.packages(pkgs$name[i])
+        install.packages(pkgs$name[i], repos="http://cran.us.r-project.org")
     }
     library(pkgs$name[i], character.only = TRUE)
 }
