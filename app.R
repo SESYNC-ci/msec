@@ -243,6 +243,10 @@ ui <- htmlTemplate("template.html",
                 pointOutputUI("mark_out")
             )
         )
+    ),
+    
+    tabPanel("View Map",
+        leafletOutput("map")         
     )
 ))
 
@@ -395,6 +399,21 @@ server <- function(input, output, session) {
         }
     })
     
+    #### Map ####
+    
+    output$map <- renderLeaflet({
+        leaflet() %>% addProviderTiles("CartoDB.Positron") %>%
+            addRasterImage(npp_stats[["mean"]], opacity = 0.7, group = "Mean NPP") %>%
+            addRasterImage(npp_stats[["sd"]], opaacity = 0.7, group = "Std. Dev. NPP") %>%
+            addLayersControl(baseGroups = c("Mean NPP", "Std. Dev. NPP"))
+    })
+    
+    observe({
+        if (nrow(pts$df) > 0) {
+            leafletProxy("map") %>%
+                addMarkers(long = pts$df$long, lat = pts$df$lat)
+        }
+    })
 }
 
 shinyApp(ui, server)
