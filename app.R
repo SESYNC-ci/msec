@@ -81,7 +81,7 @@ pointOutputUI <- function(id) {
 
 outputPoints <- function(input, output, session, pts) {
     output$dtab <- renderDataTable(signif(pts$df, digits = 6), 
-                                   option = list(pageLength = 20))
+                                   option = list(pageLength = 20, searching = FALSE))
     
     output$download <- downloadHandler(
         filename = "msec_out.csv",
