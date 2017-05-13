@@ -81,7 +81,7 @@ pointOutputUI <- function(id) {
 
 outputPoints <- function(input, output, session, pts) {
     output$dtab <- renderDataTable(signif(pts$df, digits = 6), 
-                                   option = list(pageLength = 20))
+                                   option = list(pageLength = 20, searching = FALSE))
     
     output$download <- downloadHandler(
         filename = "msec_out.csv",
@@ -127,8 +127,9 @@ ui <- htmlTemplate("template.html",
         h2("Citation"),
         p("If you use these data products, please cite the following article:"),
         p("Yeager, L.A., Marchand, P., Gill, D.A., Baum, J.K., and",
-          "McPherson, J.M. In review. Queryable global layers of environmental", 
-          "and anthropogenic variables for marine ecosystem studies."),
+          "McPherson, J.M. (2017) Queryable global layers of environmental and",
+          "anthropogenic variables for marine ecosystem studies.", 
+          tags$i("Ecology."), "In Press. doi: 10.1002/ecy.1884."),
         h2("Terms of use"),
         p("MSEC is released is an open-access data product distributed",
           "freely. We have made every effort to ensure the accuracy of the", 
