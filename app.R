@@ -1,6 +1,7 @@
 source("funcs.R")
 source("load_data.R")
 
+library(leaflet)
 
 #### App modules ####
 
@@ -124,6 +125,10 @@ ui <- htmlTemplate("template.html",
           "downloaded into a .csv file. Note that each variable has a", 
           "limitation to the number of points that can be extracted at a",
           "time as well as the maximum search radius (when applicable)."),
+        p("The", tags$b("View Map"), "tab shows the input points and several of",
+          "the MSEC variables on an interactive map. To reduce the app loading",
+          "time, only four MSEC layers are shown on the map and their resolution",
+          "has been reduced to 1/8th of a degree (from 1/24th of a degree)."),
         h2("Citation"),
         p("If you use these data products, please cite the following article:"),
         p("Yeager, L.A., Marchand, P., Gill, D.A., Baum, J.K., and",
@@ -402,17 +407,12 @@ server <- function(input, output, session) {
     
     #### Map ####
     
-    output$map <- renderLeaflet({
-        leaflet() %>% addProviderTiles("CartoDB.Positron") %>%
-            addRasterImage(npp_stats[["mean"]], opacity = 0.7, group = "Mean NPP") %>%
-            addRasterImage(npp_stats[["sd"]], opaacity = 0.7, group = "Std. Dev. NPP") %>%
-            addLayersControl(baseGroups = c("Mean NPP", "Std. Dev. NPP"))
-    })
+    output$map <- renderLeaflet(leaflet_map)
     
     observe({
         if (nrow(pts$df) > 0) {
-            leafletProxy("map") %>%
-                addMarkers(long = pts$df$long, lat = pts$df$lat)
+            leafletProxy("map", session) %>%
+                addCircleMarkers(lng = pts$df$long, lat = pts$df$lat, radius = 1)
         }
     })
 }

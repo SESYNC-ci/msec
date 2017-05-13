@@ -36,3 +36,22 @@ names(pop00_rotate) <- names(pop00)
 
 # Provincial capitals (for distance to market)
 capitals <- readOGR(file.path(data_dir, "DistMark"), layer = "Provincial_capitals")
+
+# Pre-load leaflet map layers
+leaflet_map <- leaflet() %>% 
+    addProviderTiles("CartoDB.Positron") %>%
+    setView(0, 0, zoom = 3) %>%
+    addRasterImage(raster(file.path(data_dir, "Leaflet/web_npp_mean.grd")),
+                   colors = "Greens", opacity = 0.5, group = "Mean NPP",
+                   project = FALSE) %>%
+    addRasterImage(raster(file.path(data_dir, "Leaflet/web_reefarea_15km.grd")),
+                   colors = "Blues", opacity = 0.5, group = "Reef Area w/i 15 km",
+                   project = FALSE) %>%
+    addRasterImage(raster(file.path(data_dir, "Leaflet/web_wave_mean.grd")), 
+                   colors = "Purples", opacity = 0.5, group = "Mean Wave Energy", 
+                   project = FALSE) %>%
+    addRasterImage(raster(file.path(data_dir, "Leaflet/web_humanpop_50km_2015.grd")),
+                   colors = "Reds", opacity = 0.5,
+                   group = "Human Pop. w/i 50 km (2015)", project = FALSE) %>%
+    addLayersControl(baseGroups = c("Mean NPP", "Reef Area w/i 15 km", 
+                                    "Mean Wave Energy", "Human Pop. w/i 50 km (2015)"))
