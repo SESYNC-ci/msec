@@ -1,8 +1,6 @@
 source("funcs.R")
 source("load_data.R")
 
-library(leaflet)
-
 #### App modules ####
 
 addPointUI <- function(id) {
@@ -132,7 +130,7 @@ ui <- htmlTemplate("template.html",
         h2("Citation"),
         p("If you use these data products, please cite the following article:"),
         p("Yeager, L.A., Marchand, P., Gill, D.A., Baum, J.K., and",
-          "McPherson, J.M. (2017) Queryable global layers of environmental and",
+          "McPherson, J.M. (2017) MSEC: Queryable global layers of environmental and",
           "anthropogenic variables for marine ecosystem studies.", 
           tags$i("Ecology."), "In Press. doi: 10.1002/ecy.1884."),
         h2("Terms of use"),

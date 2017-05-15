@@ -1,5 +1,6 @@
 library(raster)
 library(rgdal)
+library(leaflet)
 
 # Location of data, accessible to shiny user
 data_dir <- "/nfs/coralreef-public-data/msec/data"
