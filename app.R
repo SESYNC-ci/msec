@@ -1,7 +1,6 @@
 source("funcs.R")
 source("load_data.R")
 
-
 #### App modules ####
 
 addPointUI <- function(id) {
@@ -124,10 +123,14 @@ ui <- htmlTemplate("template.html",
           "downloaded into a .csv file. Note that each variable has a", 
           "limitation to the number of points that can be extracted at a",
           "time as well as the maximum search radius (when applicable)."),
+        p("The", tags$b("View Map"), "tab shows the input points and several of",
+          "the MSEC variables on an interactive map. To reduce the app loading",
+          "time, only four MSEC layers are shown on the map and their resolution",
+          "has been reduced to 1/8th of a degree (from 1/24th of a degree)."),
         h2("Citation"),
         p("If you use these data products, please cite the following article:"),
         p("Yeager, L.A., Marchand, P., Gill, D.A., Baum, J.K., and",
-          "McPherson, J.M. (2017) Queryable global layers of environmental and",
+          "McPherson, J.M. (2017) MSEC: Queryable global layers of environmental and",
           "anthropogenic variables for marine ecosystem studies.", 
           tags$i("Ecology."), "In Press. doi: 10.1002/ecy.1884."),
         h2("Terms of use"),
@@ -244,6 +247,10 @@ ui <- htmlTemplate("template.html",
                 pointOutputUI("mark_out")
             )
         )
+    ),
+    
+    tabPanel("View Map",
+        leafletOutput("map")         
     )
 ))
 
@@ -396,6 +403,16 @@ server <- function(input, output, session) {
         }
     })
     
+    #### Map ####
+    
+    output$map <- renderLeaflet(leaflet_map)
+    
+    observe({
+        if (nrow(pts$df) > 0) {
+            leafletProxy("map", session) %>%
+                addCircleMarkers(lng = pts$df$long, lat = pts$df$lat, radius = 1)
+        }
+    })
 }
 
 shinyApp(ui, server)

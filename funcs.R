@@ -1,8 +1,8 @@
 #### Load/update packages ####
 
 pkgs <- data.frame(
-    name = c("geosphere", "raster", "rgdal", "rgeos"),
-    version = c("1.5.5", "2.5.8", "1.1.10", "0.3.20"),
+    name = c("geosphere", "raster", "rgdal", "rgeos", "leaflet"),
+    version = c("1.5.5", "2.5.8", "1.1.10", "0.3.20", "1.1.0"),
     stringsAsFactors = FALSE
 )
 
