@@ -50,7 +50,7 @@ land_area <- function(long, lat, dist) {
     buf <- gBuffer(pt, width = dist, quadsegs = 20)
     buf <- spTransform(buf, projection(gshhs))
     
-    if (abs(long - 180) < 3) {
+    if (abs(abs(long) - 180) < 3) {
         buf <- rotate_poly(buf)
         land_crop <- crop(gshhs_rotate, buf, snap = "out")
     } else {
@@ -74,7 +74,7 @@ human_pop <- function(long, lat, dist, years) {
     yrs00 <- years[years >= 2000]
         
     # For points close to 180 meridian, used rotated (0-360) longitude
-    if (abs(long - 180) < 3) {
+    if (abs(abs(long) - 180) < 3) {
         buf <- rotate_poly(buf)
         if (length(yrs90) > 0) {
             pop90_crop <- crop(subset(pop90_rotate, paste0("pop", yrs90)), 
