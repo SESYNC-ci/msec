@@ -111,6 +111,13 @@ ui <- htmlTemplate("template.html",
           "). Variables were derived based on remote-sensing products",
           "and open-access global data products. Full documentation", 
           "and metadata is included the article listed below."),
+        h2("News"),
+        tags$ul(
+            tags$li("2018-06-05: We fixed a bug in the interactive app that resulted in",
+              "incorrect reef area, land area and human population values when the radius",
+              "overlapped the international date line. This bug only affected values calculated",
+              "in the app, not the static netCDF layers distributed in the data paper.")
+        ),
         h2("How to use this site"),
         p("The MSEC website is intended to increase accessibility of MSEC",
           "data to potential end-users by offering an platform for querying",
